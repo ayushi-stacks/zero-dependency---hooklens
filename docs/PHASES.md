@@ -1,6 +1,6 @@
 # 72-Hour Phase Plan
 
-Kickoff: 28 Aug 2026, 6:30 PM IST. Submission closes: 31 Aug 2026, 11:30 PM IST.
+Kickoff: 28 Aug 2026, 11:30 PM IST. Submission closes: 31 Aug 2026, 11:30 PM IST.
 All times below are elapsed hours from kickoff, IST wall-clock in brackets for reference.
 
 ## Phase 0 — Pre-kickoff (now → kickoff)
@@ -13,7 +13,7 @@ Allowed: planning, reading docs, prepping AI prompts, repo scaffolding, deciding
 - [ ] Register on Unstop before 11:00 PM IST deadline.
 - [ ] Join Discord — all real-time rule clarifications happen there.
 
-## Phase 1 — Core framework (Hour 0–24) [kickoff → 29 Aug, 6:30 PM IST]
+## Phase 1 — Core framework (Hour 0–24) [kickoff → 29 Aug, 11:30 PM IST]
 
 Goal: `expressless` core is functional and testable in isolation, no demo app yet.
 
@@ -23,7 +23,7 @@ Goal: `expressless` core is functional and testable in isolation, no demo app ye
 - Hour 14–20: Static file serving, MIME table, path traversal protection, 404 fallback.
 - Hour 20–24: Dev logger middleware. Core framework code-freeze for the day — commit, write initial unit tests.
 
-## Phase 2 — Demo app + integration (Hour 24–48) [29 Aug 6:30 PM → 30 Aug, 6:30 PM IST]
+## Phase 2 — Demo app + integration (Hour 24–48) [29 Aug 11:30 PM → 30 Aug, 11:30 PM IST]
 
 Goal: a real, working app running on `expressless` end to end.
 
@@ -32,21 +32,21 @@ Goal: a real, working app running on `expressless` end to end.
 - Hour 40–46: Edge case sweep — malformed JSON bodies, missing params, path traversal attempts, concurrent connections.
 - Hour 46–48: Fix whatever integration testing surfaces. Second commit checkpoint.
 
-## Phase 3 — Docs, proof, polish (Hour 48–68) [30 Aug 6:30 PM → 31 Aug, 2:30 PM IST]
+## Phase 3 — Docs, proof, polish (Hour 48–68) [30 Aug 11:30 PM → 31 Aug, 7:30 PM IST]
 
 Goal: everything the submission checklist requires exists and is correct.
 
 - Hour 48–54: Write STDLIB.md properly — every substitution, "Normally: X → Instead: Y" format, aim for 10+ entries (STDLIB Log bonus, +3).
 - Hour 54–58: README.md final pass — one-command build/run instructions, quickstart that actually works from a clean clone.
 - Hour 58–62: Dependency proof — verify empty `package.json` deps, no `node_modules`, no lockfile; write/run `scripts/verify-zero-deps.sh`.
-- Hour 62–66: Attempt reproducible build bonus (+5) if time allows — build twice, diff hashes, publish both in DEPENDENCY_PROOF.md.
+- Hour 62–66: Attempt reproducible build bonus (+5) if time allows — build twice, diff hashes, publish both in BUILD_PROOF.md.
 - Hour 66–68: Code cleanup pass — naming, comments only where non-obvious, consistent style.
 
-## Phase 4 — Demo video + submission (Hour 68–72) [31 Aug 2:30 PM → 6:30 PM IST]
+## Phase 4 — Demo video + submission (Hour 68–72) [31 Aug 7:30 PM → 11:30 PM IST]
 
 - Hour 68–70: Record 5-minute demo video — what it does, live requests against the server, quick STDLIB.md walkthrough.
 - Hour 70–71: Make GitHub repo public if not already, final push, tag a release.
-- Hour 71–72: Submit via Discord per official instructions. Confirm submission acknowledged, leaving the remaining five hours before the 11:30 PM IST deadline as contingency.
+- Hour 71–72: Submit via Discord per official instructions. Confirm submission acknowledged. The 72-hour window ends exactly at the 11:30 PM IST deadline, so there is no post-submission slack — treat Hour 71–72 itself as the contingency.
 
 ## Buffer discipline
 

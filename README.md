@@ -6,7 +6,7 @@ The included HookLens demo is a self-hosted webhook inspector. It creates local 
 
 ## Run it
 
-Node.js 18 or newer is the only requirement. There is deliberately no install step.
+Node.js 18 or newer is the only requirement, and there is deliberately no install step. Developed and verified on Node 22.14.0. Node 18 and 20 are both past end-of-life, so Node 22 LTS or newer is recommended.
 
 ```bash
 node demo/server.js

@@ -9,7 +9,7 @@
 - [x] README and STDLIB substitution log
 - [x] Five-minute demo script
 - [ ] Recorded demo video URL: add after recording
-- [x] Public GitHub repository URL: https://github.com/ayushi-stacks/expressless
+- [x] Public GitHub repository URL: https://github.com/ayushi-stacks/zero-dependency---hooklens
 - [ ] Discord submission confirmation: add after organizer acknowledgement
 
 ## Final submission text
@@ -24,6 +24,6 @@ Run: `node demo/server.js`
 
 Verify: `npm run check`
 
-Repository: `https://github.com/ayushi-stacks/expressless`
+Repository: `https://github.com/ayushi-stacks/zero-dependency---hooklens`
 
 Demo video: `[VIDEO_URL]`

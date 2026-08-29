@@ -2,7 +2,24 @@
 
 Required submission doc. Format: `Normally: <package> -> Instead: <stdlib approach>`, with a short note on what the substitution cost or what edge case it made painful.
 
-Target: 10+ entries for the STDLIB Log bonus (+3).
+Target: 10+ entries for the STDLIB Log bonus (+3). Delivered: 18.
+
+## Package Killer target
+
+Bonus claim (+3): `express` plus the middleware stack a typical Express JSON API installs alongside it. Every package below is replaced by first-party code in this repository. Nothing is wrapped, shimmed, or vendored.
+
+| Package | Weekly downloads | Replaced by |
+|---|---|---|
+| `mime-types` | 263,397,438 | entry 6 |
+| `qs` | 183,294,367 | entry 8 |
+| `body-parser` | 139,359,839 | entry 3 |
+| `serve-static` | 139,292,633 | entry 4 |
+| `express` | 132,906,522 | entry 1 |
+| `morgan` | 13,313,269 | entry 7 |
+
+Counts are npm `last-week` point figures for 22-28 Aug 2026.
+
+This is a clean reimplementation of the surface a JSON API actually exercises, not a claim of Express parity. The "Explicitly out of scope" section at the end names every Express sub-package deliberately left unimplemented, and why.
 
 ## Substitutions
 

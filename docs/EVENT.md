@@ -12,7 +12,7 @@ Team size: 1–4 members. Solo allowed. Prize pool: ₹1,80,000.
 | Milestone | Time (EDT) | Time (IST) |
 |---|---|---|
 | Registration deadline | 28 Aug 26, 1:30 PM | 28 Aug 26, 11:00 PM |
-| Hackathon kickoff | 28 Aug 26, 2:00 PM | 28 Aug 26, 6:30 PM |
+| Hackathon kickoff | 28 Aug 26, 2:00 PM | 28 Aug 26, 11:30 PM |
 | Project submission closes | 31 Aug 26, 2:00 PM | 31 Aug 26, 11:30 PM |
 | Write-up submission closes | 8 Sep 26, 2:00 PM | 8 Sep 26, 11:30 PM |
 | Winners announced (Discord) | 11 Sep 26, 2:00 PM | 11 Sep 26, 11:30 PM |

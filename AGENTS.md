@@ -10,7 +10,7 @@ Only `node:`-prefixed built-in imports are allowed (`require('node:http')`, `req
 
 ## Timing constraint
 
-**Do not write or commit files under `src/` or `test/` before the hackathon officially starts** (28 Aug 2026, 6:30 PM IST — check docs/EVENT.md for the authoritative timestamp). Before kickoff, only docs, planning, and empty scaffolding are allowed per the rules. If asked to implement something before that time, push back and point to this constraint instead of writing the code.
+**Do not write or commit files under `src/` or `test/` before the hackathon officially starts** (28 Aug 2026, 11:30 PM IST — check docs/EVENT.md for the authoritative timestamp). Before kickoff, only docs, planning, and empty scaffolding are allowed per the rules. If asked to implement something before that time, push back and point to this constraint instead of writing the code.
 
 ## Where to look before writing code
 

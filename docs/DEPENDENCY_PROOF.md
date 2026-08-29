@@ -19,6 +19,34 @@ The verifier exits non-zero if any of these claims becomes false:
 
 The POSIX wrapper `scripts/verify-zero-deps.sh` runs the same cross-platform Node verifier.
 
+## Verified output
+
+Captured 29 Aug 2026 on Windows 11, Node 22.14.0, from a clean checkout with no `node_modules` present.
+
+```console
+$ node --version
+v22.14.0
+
+$ node scripts/lint.js
+Lint passed: syntax, whitespace, and import boundaries are clean.
+
+$ node --test
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 207.9283
+
+$ node scripts/verify-zero-deps.js
+Zero-dependency verification passed.
+Manifest empty; no install artifacts; all imports are built-in or relative.
+```
+
+The reproducible-build hashes are recorded separately in [BUILD_PROOF.md](BUILD_PROOF.md). They are deliberately not pasted here: `scripts/build.js` copies `docs/` into the release directory and hashes it, so a build hash written into this file would invalidate itself on the next build. `BUILD_PROOF.md` is excluded from the copy for exactly that reason.
+
 ## Standard library surface
 
 Runtime code uses these built-ins:
