@@ -2,7 +2,7 @@
 
 Required submission doc. Format: `Normally: <package> -> Instead: <stdlib approach>`, with a short note on what the substitution cost or what edge case it made painful.
 
-Target: 10+ entries for the STDLIB Log bonus (+3). Delivered: 18.
+Target: 10+ entries for the STDLIB Log bonus (+3). Delivered: 23.
 
 ## Package Killer target
 
@@ -41,27 +41,37 @@ This is a clean reimplementation of the surface a JSON API actually exercises, n
    Gap: repeated flat keys are retained as arrays, while nested bracket notation is deliberately unsupported.
 9. Normally: `supertest` -> Instead: `node:http` sends real requests to ephemeral ports and `node:test` plus `node:assert` checks responses.
    Cost: tests explicitly manage server startup, shutdown, request bodies, and response buffering.
-10. Normally: `http-errors` -> Instead: ordinary `Error` objects carry a numeric `status` consumed by the default/error middleware path.
-    Edge: unexpected 500-level errors hide their internal messages from clients.
-11. Normally: `lowdb` -> Instead: `node:fs` loads and persists HookLens channels and captured events as JSON.
-    Cost: this is intentionally a single-process store; mutation serialization protects concurrent requests, not multiple server processes.
-12. Normally: `write-file-atomic` -> Instead: each mutation writes a uniquely named temporary file and renames it over the data file.
-    Edge: failed writes remove their temporary file and leave the last complete dataset in place.
-13. Normally: `uuid` -> Instead: `node:crypto.randomUUID()` creates channel-safe event identifiers.
-    Gap: identifiers are opaque UUIDs without sortable timestamp semantics.
-14. Normally: `eventsource` / `sse` -> Instead: `ServerResponse.writeHead()` and chunked `res.write()` emit Server-Sent Events frames directly.
-    Edge: long-lived responses must be cleaned up on `close`, or tests and shutdown can hang.
-15. Normally: `raw-body` -> Instead: HookLens reads `IncomingMessage` buffers directly for webhook captures before JSON middleware runs.
-    Edge: binary-ish payloads are stored as base64 while common text, JSON, XML, and form bodies remain inspectable as UTF-8.
-16. Normally: `helmet`-style sensitive-header helpers -> Instead: a small explicit denylist redacts auth, cookie, API key, signature, and webhook-secret headers.
-    Gap: application-specific secret names still need to be added deliberately rather than inferred.
-17. Normally: `eslint` -> Instead: `node:vm` parses every JavaScript file and a local script enforces whitespace and import-boundary rules.
-    Gap: this focused lint does not attempt ESLint's semantic rule ecosystem.
-18. Normally: `shx` / `cpy-cli` -> Instead: `node:fs` recursively creates a deterministic release directory and `node:crypto` hashes its manifest.
-    Edge: the build sorts every path and excludes timestamps so two builds from identical source have identical manifest hashes.
+10. Normally: `http-errors` -> Instead: a tiny error factory attaches numeric `status` and `statusCode` values to `Error` objects.
+   Edge: the default app path still hides internal 500 messages from clients while preserving the real error for debugging.
+11. Normally: `statuses` -> Instead: a local HTTP status table exposes numeric code lookups and friendly message strings.
+   Gap: the implementation covers the common status catalog used by the framework and the demo, not every RFC edge-case alias.
+12. Normally: `content-type` -> Instead: a lightweight parser/formatter handles media-type names and parameter strings such as `charset=utf-8`.
+   Edge: quoted parameter values are decoded, but this is intentionally not a full RFC-7231 parser.
+13. Normally: `encodeurl` -> Instead: `encodeURI()` is applied with bracket preservation for safe path formatting.
+   Gap: the helper intentionally avoids broad URL rewriting and does not manage query-string escaping semantics.
+14. Normally: `cookie` -> Instead: `serialize()` and `parse()` handle basic cookie attributes such as `Max-Age`, `Path`, `HttpOnly`, and `SameSite`.
+   Edge: this is a focused utility layer rather than a full set-cookie compliance library.
+15. Normally: `cookie-signature` -> Instead: HMAC-SHA256 signing emits `value.signature` tokens that can be verified without external dependencies.
+   Gap: the implementation targets signed session-style values rather than a password-authenticated cookie system.
+16. Normally: `lowdb` -> Instead: `node:fs` loads and persists HookLens channels and captured events as JSON.
+   Cost: this is intentionally a single-process store; mutation serialization protects concurrent requests, not multiple server processes.
+17. Normally: `write-file-atomic` -> Instead: each mutation writes a uniquely named temporary file and renames it over the data file.
+   Edge: failed writes remove their temporary file and leave the last complete dataset in place.
+18. Normally: `uuid` -> Instead: `node:crypto.randomUUID()` creates channel-safe event identifiers.
+   Gap: identifiers are opaque UUIDs without sortable timestamp semantics.
+19. Normally: `eventsource` / `sse` -> Instead: `ServerResponse.writeHead()` and chunked `res.write()` emit Server-Sent Events frames directly.
+   Edge: long-lived responses must be cleaned up on `close`, or tests and shutdown can hang.
+20. Normally: `raw-body` -> Instead: HookLens reads `IncomingMessage` buffers directly for webhook captures before JSON middleware runs.
+   Edge: binary-ish payloads are stored as base64 while common text, JSON, XML, and form bodies remain inspectable as UTF-8.
+21. Normally: `helmet`-style sensitive-header helpers -> Instead: a small explicit denylist redacts auth, cookie, API key, signature, and webhook-secret headers.
+   Gap: application-specific secret names still need to be added deliberately rather than inferred.
+22. Normally: `eslint` -> Instead: `node:vm` parses every JavaScript file and a local script enforces whitespace and import-boundary rules.
+   Gap: this focused lint does not attempt ESLint's semantic rule ecosystem.
+23. Normally: `shx` / `cpy-cli` -> Instead: `node:fs` recursively creates a deterministic release directory and `node:crypto` hashes its manifest.
+   Edge: the build sorts every path and excludes timestamps so two builds from identical source have identical manifest hashes.
 
 ## Explicitly out of scope (and why)
 
-`finalhandler`, `on-finished`, `fresh`, `vary`, `proxy-addr`, `range-parser`, `type-is`, `accepts`, `depd`, `debug`, nested-bracket `qs` parsing, `etag`, cookies and signatures, `content-disposition`, `content-type`, `encodeurl`, `escape-html`, `merge-descriptors`, `once`, and the full `statuses` catalog remain out of scope.
+`finalhandler`, `on-finished`, `fresh`, `vary`, `proxy-addr`, `range-parser`, `type-is`, `accepts`, `depd`, `debug`, nested-bracket `qs` parsing, `etag`, `content-disposition`, `escape-html`, `merge-descriptors`, and `once` remain out of scope.
 
-Those packages primarily cover content negotiation, proxy awareness, caching, range requests, cookies, compatibility behavior, and internal plumbing that HookLens does not exercise. The narrower surface is deliberate: malformed input, body limits, raw capture, live streams, path traversal, error flow, persistence, redaction, and concurrent requests are implemented and tested instead of claiming incomplete Express parity.
+Those packages primarily cover content negotiation, proxy awareness, caching, range requests, compatibility behavior, and internal plumbing that HookLens does not exercise. The narrower surface is deliberate: malformed input, body limits, raw capture, live streams, path traversal, error flow, persistence, redaction, signed-cookie basics, and concurrent requests are implemented and tested instead of claiming incomplete Express parity.
