@@ -1,0 +1,22 @@
+{
+  "name": "expressless",
+  "version": "1.0.0",
+  "description": "A zero-dependency HTTP framework for Node.js, built for the Hackathon Raptors Zero Dependency hackathon.",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node scripts/build.js",
+    "check": "node scripts/lint.js && node --test && node scripts/verify-zero-deps.js && node scripts/verify-build.js",
+    "lint": "node scripts/lint.js",
+    "start": "node demo/server.js",
+    "test": "node --test",
+    "verify-build": "node scripts/verify-build.js",
+    "verify-zero-deps": "node scripts/verify-zero-deps.js"
+  },
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

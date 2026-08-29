@@ -1,0 +1,13 @@
+{
+  "channels": [
+    {
+      "id": "demo",
+      "name": "Demo channel",
+      "createdAt": "2026-08-28T13:00:00.000Z",
+      "updatedAt": "2026-08-28T13:00:00.000Z"
+    }
+  ],
+  "events": {
+    "demo": []
+  }
+}

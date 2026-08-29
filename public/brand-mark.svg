@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">HookLens mark</title>
+  <rect width="48" height="48" rx="8" fill="#12343b"/>
+  <path fill="#f3b447" d="M11 15h11v5H11zm15 0h11v5H26zM11 28h11v5H11zm15 0h11v5H26z"/>
+  <path fill="#9fe0ca" d="M21 18h6v12h-6z"/>
+  <path fill="#ffffff" d="M33 30.5 38.5 36 36 38.5 30.5 33a7 7 0 1 1 2.5-2.5ZM27 29a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+</svg>

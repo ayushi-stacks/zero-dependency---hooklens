@@ -1,0 +1,3 @@
+dist/
+demo/data/*.tmp
+.server-*.log

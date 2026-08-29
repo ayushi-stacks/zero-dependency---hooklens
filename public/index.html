@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12343b">
+  <title>HookLens</title>
+  <link rel="icon" href="/brand-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="/brand-mark.svg" alt="" width="38" height="38">
+      <div>
+        <h1>HookLens</h1>
+        <p>Webhook inspector</p>
+      </div>
+    </div>
+    <form class="channel-form" id="channel-form">
+      <label>
+        <span>Channel</span>
+        <input id="channel-name" maxlength="60" placeholder="Stripe dev" autocomplete="off">
+      </label>
+      <button class="primary-button" type="submit">Create</button>
+    </form>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar" aria-label="Channels">
+      <div class="section-heading">
+        <h2>Channels</h2>
+        <span id="channel-count">0</span>
+      </div>
+      <div class="channel-list" id="channel-list"></div>
+    </aside>
+
+    <section class="inspector" aria-label="Webhook inspector">
+      <div class="endpoint-band">
+        <div>
+          <span class="kicker">Endpoint</span>
+          <code id="endpoint-url">Loading...</code>
+        </div>
+        <div class="endpoint-actions">
+          <button class="secondary-button" id="copy-endpoint" type="button">Copy</button>
+          <button class="danger-button" id="clear-events" type="button">Clear</button>
+        </div>
+      </div>
+
+      <div class="stats" aria-label="Channel activity">
+        <div><strong id="event-total">0</strong><span>Captured</span></div>
+        <div><strong id="last-method">-</strong><span>Last method</span></div>
+        <div><strong id="stream-state">Offline</strong><span>Live stream</span></div>
+      </div>
+
+      <div class="toolbar">
+        <label class="search-field">
+          <span>Search</span>
+          <input id="event-search" type="search" placeholder="Headers, path, body" autocomplete="off">
+        </label>
+        <label>
+          <span>Method</span>
+          <select id="method-filter">
+            <option value="">All</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>PATCH</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="split-view">
+        <section class="event-list" aria-labelledby="events-title">
+          <div class="section-heading">
+            <h2 id="events-title">Events</h2>
+            <span id="result-note" aria-live="polite">Loading...</span>
+          </div>
+          <div id="events"></div>
+          <div class="empty-state" id="empty-state" hidden>
+            <img src="/brand-mark.svg" alt="" width="44" height="44">
+            <h3>No captures yet</h3>
+            <p>Send a request to the endpoint above.</p>
+          </div>
+        </section>
+
+        <section class="detail-panel" aria-labelledby="detail-title">
+          <div class="section-heading">
+            <h2 id="detail-title">Detail</h2>
+            <button class="secondary-button" id="copy-curl" type="button">cURL</button>
+          </div>
+          <div id="event-detail" class="detail-empty">Select an event</div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
