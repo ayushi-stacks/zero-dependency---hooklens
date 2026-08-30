@@ -36,6 +36,7 @@ $env:PORT=8080; node demo/server.js
 - Atomic JSON persistence with serialized mutations
 - Server-Sent Events for live browser updates
 - A responsive webhook inspector with channel creation, endpoint copy, search, filters, event detail, and copy-as-cURL
+- Extra Express-style utility modules for `http-errors`, `statuses`, `content-type`, `encodeurl`, and `cookie`/`cookie-signature`
 
 ## Framework API
 
@@ -60,7 +61,7 @@ app.use((error, req, res, next) => {
 app.listen(3000);
 ```
 
-Built-in middleware factories are `expressless.json()`, `expressless.urlencoded()`, `expressless.static(root)`, and `expressless.logger()`.
+Built-in middleware factories are `expressless.json()`, `expressless.urlencoded()`, `expressless.static(root)`, and `expressless.logger()`. Utility modules are also exposed from the same entry point: `expressless.statuses`, `expressless.httpError`, `expressless.contentType`, `expressless.encodeUrl`, and `expressless.cookie` / `expressless.cookieSignature`.
 
 ## HookLens API
 
@@ -114,7 +115,7 @@ It creates `dist/expressless` plus a sorted SHA-256 manifest. The release direct
 
 The body parsers buffer `IncomingMessage` chunks up to a fixed limit. HookLens captures raw webhook bodies before JSON middleware runs, so JSON webhooks are stored exactly as received. Static serving resolves and then canonicalizes paths before streaming. The demo store serializes mutations through a promise queue, writes a complete temporary JSON file, and renames it into place only after the write succeeds.
 
-The scope is intentionally smaller than Express. It does not implement cookies, proxies, content negotiation, ranges, conditional caching, templates, nested query syntax, or Express compatibility aliases. [STDLIB.md](STDLIB.md) records every substitution and gap.
+The scope is intentionally smaller than Express. It implements the common HTTP utility layer a JSON API actually touches, including error creation, common HTTP status names, content-type parsing, URL encoding, and signed cookies, while leaving proxy-aware routing, range negotiation, template engines, and deeper Express compatibility behavior out of scope. [STDLIB.md](STDLIB.md) records every substitution and gap.
 
 ## Repository map
 
