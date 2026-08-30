@@ -34,6 +34,40 @@ Technical detail per phase from PHASES.md — which Node stdlib APIs back which 
 ### Dev logger
 - Middleware that records `Date.now()` on entry, hooks `res.on('finish', ...)` to log `method path status Xms` to stdout.
 
+## Phase 1 extension — conditional requests and partial transfer
+
+Added once the core framework proved out. All five of these are Express 5 direct dependencies; STDLIB.md entries 24-28 carry the substitution reasoning.
+
+### ETags (`src/etag.js`)
+- `crypto.createHash('sha256')` over the response buffer, base64, truncated to 27 characters, prefixed with the byte length in hex: `"<len>-<digest>"`.
+- An `fs.Stats` argument takes a different path entirely — `"<size>-<mtime>"` in hex — so a file never has to be read to be tagged. That tag is weak by default, because size and mtime cannot see a same-length overwrite landing in one clock tick.
+
+### Freshness (`src/fresh.js`)
+- `fresh(req.headers, res.getHeaders())` answers whether the client's copy is still current.
+- `If-None-Match` uses weak comparison: strip a leading `W/` from both sides before comparing, so a weak stat tag satisfies a strong request tag. `*` matches anything present.
+- A request `Cache-Control: no-cache` short-circuits to stale before any comparison runs.
+- Per RFC 9110 13.1.3, `If-Modified-Since` is ignored whenever `If-None-Match` is also present.
+
+### Vary (`src/vary.js`)
+- `vary(res, field)` reads the current header, appends field names case-insensitively without duplicating, and writes it back. `append(header, field)` is the pure string form for testing.
+- A `*` on either side collapses the result to `*`, since keeping both would advertise a narrower cache key than the response has.
+
+### Byte ranges (`src/range-parser.js`)
+- `parseRange(size, header)` returns an array of `{ start, end }` carrying the requested unit on `.type`, or the `MALFORMED` / `UNSATISFIABLE` sentinels.
+- A suffix range (`bytes=-500`) resolves against the entity size; an open range (`bytes=500-`) runs to `size - 1`; an over-long end clamps to the last byte.
+- The parser stays unit-agnostic. Rejecting anything that is not `bytes` belongs to the caller, in `src/static.js` and `src/response.js`.
+
+### Download names (`src/content-disposition.js`)
+- Formats `attachment; filename="..."`, adding `filename*=UTF-8''...` whenever the basename is not plain ASCII or holds a literal `%XX`.
+- Only `path.basename()` is ever emitted and every emitted byte stays printable ASCII, so neither a directory path nor a CR/LF can be smuggled through a name that originally came from a webhook.
+- `parse()` is quote-aware, so a `;` inside a quoted filename does not split the parameter list, and `filename*` always beats `filename`.
+
+### Where they attach
+- `res.json()` and `res.send()` tag 2xx GET/HEAD responses, then return 304 when the validators match.
+- `src/static.js` sets `ETag`, `Last-Modified`, and `Accept-Ranges` before opening the file, so a 304 costs no filesystem read at all.
+- `Range` is honoured only when the response already advertises `Accept-Ranges: bytes`. That keeps range behavior opt-in per handler rather than a surprise for every buffer that passes through `res.send()`.
+- Multi-range asks parse but are answered with the whole entity; `multipart/byteranges` is out of scope.
+
 ## Phase 2 — Demo app
 
 - Storage: a JSON file on disk (`fs.readFileSync`/`writeFileSync`, or async equivalents) — no embedded DB dependency needed for a small demo dataset.

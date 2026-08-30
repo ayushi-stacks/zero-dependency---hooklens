@@ -19,6 +19,9 @@
 - Send `POST`, `PUT`, and `PATCH` requests to `/hooks/demo`.
 - Include an `Authorization` header and show that it is stored as `[redacted]`.
 - Use the browser search and method filter to find the captured event.
+- Open the HTTP probes panel and click Revalidate twice: the second run returns `304 Not Modified` with an empty body, from `src/etag.js` and `src/fresh.js`.
+- Click the range probe and show `206 Partial Content` with `Content-Range: bytes 0-15/N`.
+- Click Export on a channel whose name is not ASCII and show the `Content-Disposition` carrying both an ASCII fallback and an RFC 5987 `filename*`.
 
 ## 2:35-3:35 - Framework internals
 
@@ -38,6 +41,6 @@
 
 - Run `npm run check`.
 - Show passing lint/tests, the zero-dependency proof, and matching reproducible-build hash.
-- Finish on `STDLIB.md`, highlighting 18 package substitutions and the explicit scope boundary.
+- Finish on `STDLIB.md`, highlighting 28 package substitutions, 17 of them Express 5 direct dependencies, and the explicit scope boundary.
 
 Keep terminal text large enough to read and use a clean dataset before recording.

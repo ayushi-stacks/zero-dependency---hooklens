@@ -34,12 +34,14 @@ Set `HOOKLENS_SECRET` to keep the signed "last viewed channel" cookie valid acro
 - Chainable `res.status()`, `res.send()`, and `res.json()` helpers
 - JSON and URL-encoded body parsing with configurable byte limits
 - Static streaming with MIME headers, index files, HEAD support, and traversal/symlink guards
+- Conditional GETs: automatic ETags, `Last-Modified` on files, and 304 responses driven by `If-None-Match` and `If-Modified-Since`
+- Byte-range requests with 206 responses, `Content-Range`, `If-Range` revalidation, and 416 for unsatisfiable asks
 - Completion-time request logging
 - Atomic JSON persistence with serialized mutations
 - Server-Sent Events for live browser updates
-- A responsive webhook inspector with channel creation, endpoint copy, search, filters, event detail, and copy-as-cURL
+- A responsive webhook inspector with channel creation, endpoint copy, search, filters, event detail, copy-as-cURL, channel export, raw-body download, and a live HTTP probe panel
 - Cookie parsing with signed-cookie verification, plus `res.cookie()`, `res.clearCookie()`, `res.redirect()`, and `res.sendStatus()`
-- Standalone `http-errors`, `statuses`, `content-type`, `encodeurl`, `cookie`, and `cookie-signature` replacements, each called on the request path
+- Standalone `http-errors`, `statuses`, `content-type`, `encodeurl`, `cookie`, `cookie-signature`, `etag`, `fresh`, `vary`, `range-parser`, and `content-disposition` replacements, each called on the request path
 
 ## Framework API
 
@@ -66,7 +68,11 @@ app.listen(3000);
 
 Built-in middleware factories are `expressless.json()`, `expressless.urlencoded()`, `expressless.static(root)`, `expressless.logger()`, and `expressless.cookies(secret)`. The last populates `req.cookies` and, when a secret is supplied, verifies `s:`-prefixed values into `req.signedCookies`; a cookie whose signature does not verify is dropped rather than surfaced.
 
-Responses also carry `res.sendStatus(code)`, `res.redirect([status], url)`, `res.cookie(name, value, options)`, and `res.clearCookie(name, options)`. The same utility modules are exposed directly for standalone use: `expressless.statuses`, `expressless.httpError`, `expressless.contentType`, `expressless.encodeUrl`, and `expressless.cookie` / `expressless.cookieSignature`.
+Responses also carry `res.sendStatus(code)`, `res.redirect([status], url)`, `res.cookie(name, value, options)`, `res.clearCookie(name, options)`, `res.vary(field)`, and `res.attachment(filename)`. Requests expose `req.fresh`, which reports lazily whether the validators already on the response satisfy the client's conditional headers.
+
+`res.json()` and `res.send()` tag successful GET and HEAD responses with an ETag and answer a matching `If-None-Match` with a 304 automatically. A handler that also sets `Accept-Ranges: bytes` opts that response into `Range` handling; without that header a `Range` request is ignored, so no handler can accidentally return a slice of something it never declared range-capable.
+
+The same utility modules are exposed directly for standalone use: `expressless.statuses`, `expressless.httpError`, `expressless.contentType`, `expressless.encodeUrl`, `expressless.etag`, `expressless.fresh`, `expressless.vary`, `expressless.rangeParser`, `expressless.contentDisposition`, and `expressless.cookie` / `expressless.cookieSignature`.
 
 ## HookLens API
 
@@ -79,6 +85,8 @@ Responses also carry `res.sendStatus(code)`, `res.redirect([status], url)`, `res
 | GET | `/api/channels/:channelId` | Fetch one channel summary |
 | GET | `/api/channels/:channelId/events` | List captured events with filters |
 | GET | `/api/channels/:channelId/events/:eventId` | Fetch one captured event |
+| GET | `/api/channels/:channelId/events/:eventId/body` | Raw captured payload as an opaque download; honours `Range` |
+| GET | `/api/channels/:channelId/export` | Channel and events as a named JSON attachment |
 | DELETE | `/api/channels/:channelId/events` | Clear captured events |
 | GET | `/api/channels/:channelId/stream` | Stream live updates as SSE |
 | POST/PUT/PATCH | `/hooks/:channelId` | Capture a webhook payload |
@@ -120,9 +128,11 @@ It creates `dist/expressless` plus a sorted SHA-256 manifest. The release direct
 
 `src/application.js` owns one ordered layer stack. Middleware layers match every request; route layers additionally match method and compiled path segments. Calling `next(error)` advances through the same stack while selecting only four-argument error handlers.
 
-The body parsers buffer `IncomingMessage` chunks up to a fixed limit. HookLens captures raw webhook bodies before JSON middleware runs, so JSON webhooks are stored exactly as received. Static serving resolves and then canonicalizes paths before streaming. The demo store serializes mutations through a promise queue, writes a complete temporary JSON file, and renames it into place only after the write succeeds.
+The body parsers buffer `IncomingMessage` chunks up to a fixed limit. HookLens captures raw webhook bodies before JSON middleware runs, so JSON webhooks are stored exactly as received. Static serving resolves and then canonicalizes paths before streaming, and sets validators before opening the file so a repeat visit is answered from headers alone. The demo store serializes mutations through a promise queue, writes a complete temporary JSON file, and renames it into place only after the write succeeds.
 
-The scope is intentionally smaller than Express. It implements the common HTTP utility layer a JSON API actually touches, including error creation, common HTTP status names, content-type parsing, URL encoding, and signed cookies, while leaving proxy-aware routing, range negotiation, template engines, and deeper Express compatibility behavior out of scope. [STDLIB.md](STDLIB.md) records every substitution and gap.
+A raw captured payload is served as `application/octet-stream` with `nosniff` and a `Content-Disposition` attachment, never under the Content-Type the sender supplied. Echoing that header back would let a webhook sender store HTML and have this origin serve it as a page.
+
+The scope is intentionally smaller than Express. It implements the common HTTP utility layer a JSON API actually touches, including error creation, common HTTP status names, content-type parsing, URL encoding, signed cookies, conditional requests, byte ranges, and download naming, while leaving proxy-aware routing, content negotiation, template engines, and deeper Express compatibility behavior out of scope. [STDLIB.md](STDLIB.md) records every substitution and gap.
 
 ## Repository map
 

@@ -44,6 +44,7 @@
         </div>
         <div class="endpoint-actions">
           <button class="secondary-button" id="copy-endpoint" type="button">Copy</button>
+          <button class="secondary-button" id="export-events" type="button">Export</button>
           <button class="danger-button" id="clear-events" type="button">Clear</button>
         </div>
       </div>
@@ -52,7 +53,22 @@
         <div><strong id="event-total">0</strong><span>Captured</span></div>
         <div><strong id="last-method">-</strong><span>Last method</span></div>
         <div><strong id="stream-state">Offline</strong><span>Live stream</span></div>
+        <div><strong id="probe-status">-</strong><span>Last probe</span></div>
       </div>
+
+      <details class="protocol-lab">
+        <summary>
+          <span>HTTP probes</span>
+          <em>Conditional requests, byte ranges, and download headers</em>
+        </summary>
+        <div class="probe-actions">
+          <button class="secondary-button" id="probe-revalidate" type="button">Revalidate &middot; etag + fresh</button>
+          <button class="secondary-button" id="probe-range" type="button">First 16 bytes &middot; range-parser</button>
+          <button class="secondary-button" id="probe-session" type="button">Session &middot; vary</button>
+          <button class="secondary-button" id="probe-export" type="button">Export headers &middot; content-disposition</button>
+        </div>
+        <pre id="probe-output">Run a probe to see the status line and response headers.</pre>
+      </details>
 
       <div class="toolbar">
         <label class="search-field">
@@ -87,7 +103,10 @@
         <section class="detail-panel" aria-labelledby="detail-title">
           <div class="section-heading">
             <h2 id="detail-title">Detail</h2>
-            <button class="secondary-button" id="copy-curl" type="button">cURL</button>
+            <div class="detail-actions">
+              <button class="secondary-button" id="download-body" type="button">Raw body</button>
+              <button class="secondary-button" id="copy-curl" type="button">cURL</button>
+            </div>
           </div>
           <div id="event-detail" class="detail-empty">Select an event</div>
         </section>

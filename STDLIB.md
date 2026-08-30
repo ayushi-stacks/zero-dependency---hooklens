@@ -2,7 +2,7 @@
 
 Required submission doc. Format: `Normally: <package> -> Instead: <stdlib approach>`, with a short note on what the substitution cost or what edge case it made painful.
 
-Target: 10+ entries for the STDLIB Log bonus (+3). Delivered: 23.
+Target: 10+ entries for the STDLIB Log bonus (+3). Delivered: 28.
 
 ## Package Killer target
 
@@ -17,17 +17,22 @@ Bonus claim (+3): `express` and the dependency stack it installs. Every package 
 | `qs` | 183,329,509 | entry 8 |
 | `http-errors` | 169,873,339 | entry 10 |
 | `encodeurl` | 150,223,271 | entry 13 |
+| `content-disposition` | 143,298,903 | entry 28 |
 | `send` | 143,260,992 | entry 5 |
 | `serve-static` | 139,338,135 | entry 4 |
 | `body-parser` | 139,301,713 | entry 3 |
+| `fresh` | 137,376,038 | entry 25 |
 | `cookie-signature` | 137,337,257 | entry 15 |
 | `express` | 132,879,571 | entry 1 |
+| `range-parser` | 126,787,861 | entry 27 |
+| `vary` | 111,513,530 | entry 26 |
+| `etag` | 111,298,854 | entry 24 |
 | `router` | 64,411,246 | entry 2 |
 | `morgan` | 13,351,654 | entry 7 |
 
 Counts are npm `last-week` point figures for 23-29 Aug 2026.
 
-Express 5.2.1 declares 28 direct dependencies. Twelve are reimplemented here: `router`, `send`, `body-parser`, `serve-static`, `mime-types`, `qs`, `http-errors`, `statuses`, `content-type`, `encodeurl`, `cookie`, and `cookie-signature`. `express` itself and the transitive `raw-body` bring the total to fourteen packages from that tree. `morgan` is a companion middleware rather than a dependency of Express.
+Express 5.2.1 declares 28 direct dependencies. Seventeen are reimplemented here: `router`, `send`, `body-parser`, `serve-static`, `mime-types`, `qs`, `http-errors`, `statuses`, `content-type`, `encodeurl`, `cookie`, `cookie-signature`, `etag`, `fresh`, `vary`, `range-parser`, and `content-disposition`. `express` itself and the transitive `raw-body` bring the total to nineteen packages from that tree. `morgan` is a companion middleware rather than a dependency of Express.
 
 This is a clean reimplementation of the surface a JSON API actually exercises, not a claim of Express parity. The "Explicitly out of scope" section at the end names the remaining sub-packages and why each is left unimplemented.
 
@@ -79,6 +84,16 @@ This is a clean reimplementation of the surface a JSON API actually exercises, n
    Gap: this focused lint does not attempt ESLint's semantic rule ecosystem.
 23. Normally: `shx` / `cpy-cli` -> Instead: `node:fs` recursively creates a deterministic release directory and `node:crypto` hashes its manifest.
    Edge: the build sorts every path and excludes timestamps so two builds from identical source have identical manifest hashes.
+24. Normally: `etag` -> Instead: `node:crypto` hashes a response body into a `"<length>-<digest>"` validator, and file responses derive a tag from size and mtime instead of reading the file.
+   Edge: stat tags stay weak because a same-length overwrite inside one clock tick is invisible to size and mtime; the content hash is SHA-256 rather than the package's SHA-1.
+25. Normally: `fresh` -> Instead: a validator comparison reads `If-None-Match` and `If-Modified-Since` and reports whether the client's copy is still current, which turns into a 304 with no body.
+   Edge: RFC 9110 13.1.3 requires `If-Modified-Since` to be ignored when `If-None-Match` is present. The package evaluates both and requires both to pass, which can report a changed entity as fresh.
+26. Normally: `vary` -> Instead: a case-insensitive field-name appender maintains the `Vary` header without duplicating entries.
+   Edge: a `*` on either side collapses the whole list, because keeping both would advertise a narrower cache key than the response actually has.
+27. Normally: `range-parser` -> Instead: a byte-range parser resolves explicit offsets and suffix ranges against the entity size, feeding 206 responses and `Content-Range`.
+   Gap: multiple ranges parse correctly but are answered with the whole entity rather than a `multipart/byteranges` body, and the parser stays unit-agnostic, so the caller is what rejects a non-`bytes` unit.
+28. Normally: `content-disposition` -> Instead: a formatter and parser emit `attachment; filename=...` plus an RFC 5987 `filename*` when the name is not plain ASCII.
+   Edge: every emitted byte stays printable ASCII, so a CR/LF inside an attacker-supplied name is percent-encoded into `filename*` rather than reaching the header as a line break; only the basename is ever emitted.
 
 ## Where these run
 
@@ -92,9 +107,14 @@ The replacements are not a side library. Each one is called on the request path 
 | `encodeurl` | the `Location` header built by `res.redirect()` in `src/response.js` |
 | `cookie` | `src/cookies.js` middleware; `res.cookie()` and `res.clearCookie()` in `src/response.js`; captured cookie names in `demo/app.js` |
 | `cookie-signature` | signed cookies in `src/cookies.js` and `res.cookie({ signed: true })`; HookLens remembers the last viewed channel with one |
+| `etag` | `res.json()` and `res.send()` in `src/response.js`; every file response in `src/static.js` |
+| `fresh` | the 304 path in `src/response.js` and `src/static.js`; the lazy `req.fresh` getter |
+| `vary` | `res.vary()` in `src/response.js`; `Vary: Cookie` on `/api/session` in `demo/app.js` |
+| `range-parser` | `Range` handling in `src/static.js`, and in `res.send()` for a handler that advertised `Accept-Ranges` |
+| `content-disposition` | `res.attachment()` in `src/response.js`; the channel export and raw-body download in `demo/app.js` |
 
 ## Explicitly out of scope (and why)
 
-`finalhandler`, `on-finished`, `fresh`, `vary`, `proxy-addr`, `range-parser`, `type-is`, `accepts`, `depd`, `debug`, nested-bracket `qs` parsing, `etag`, `content-disposition`, `escape-html`, `merge-descriptors`, and `once` remain out of scope.
+`finalhandler`, `on-finished`, `proxy-addr`, `type-is`, `accepts`, `depd`, `debug`, nested-bracket `qs` parsing, `escape-html`, `merge-descriptors`, and `once` remain out of scope.
 
-Those packages primarily cover content negotiation, proxy awareness, caching, range requests, compatibility behavior, and internal plumbing that HookLens does not exercise. The narrower surface is deliberate: malformed input, body limits, raw capture, live streams, path traversal, error flow, persistence, redaction, signed-cookie basics, and concurrent requests are implemented and tested instead of claiming incomplete Express parity.
+Those packages primarily cover content negotiation, proxy awareness, compatibility behavior, and internal plumbing that HookLens does not exercise. The narrower surface is deliberate: malformed input, body limits, raw capture, live streams, path traversal, error flow, persistence, redaction, signed-cookie basics, conditional requests, byte ranges, download naming, and concurrent requests are implemented and tested instead of claiming incomplete Express parity.

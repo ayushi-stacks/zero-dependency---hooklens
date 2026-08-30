@@ -2,15 +2,20 @@
 
 const createApplication = require('./application');
 const { json, urlencoded } = require('./body-parser');
+const contentDisposition = require('./content-disposition');
 const contentType = require('./content-type');
 const { parse: parseCookie, serialize: serializeCookie } = require('./cookie');
 const cookieSignature = require('./cookie-signature');
 const cookies = require('./cookies');
+const etag = require('./etag');
+const fresh = require('./fresh');
 const httpError = require('./http-errors');
 const encodeurl = require('./encodeurl');
 const logger = require('./logger');
+const rangeParser = require('./range-parser');
 const serveStatic = require('./static');
 const statuses = require('./statuses');
+const vary = require('./vary');
 
 createApplication.json = json;
 createApplication.urlencoded = urlencoded;
@@ -26,5 +31,12 @@ createApplication.encodeUrl = encodeurl;
 createApplication.cookie = { parse: parseCookie, serialize: serializeCookie };
 createApplication.cookieSignature = cookieSignature;
 createApplication.cookies = cookies;
+createApplication.contentDisposition = contentDisposition;
+createApplication['content-disposition'] = contentDisposition;
+createApplication.etag = etag;
+createApplication.fresh = fresh;
+createApplication.rangeParser = rangeParser;
+createApplication['range-parser'] = rangeParser;
+createApplication.vary = vary;
 
 module.exports = createApplication;

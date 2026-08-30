@@ -2,7 +2,7 @@
 
 Build a minimal but real HTTP framework on Node's built-in `http`/`net`/`url`/`fs` modules that replaces what people actually reach for Express to do, then prove it by building a working demo API on top of it.
 
-Not a goal: feature parity with Express's [28 runtime dependencies](https://github.com/expressjs/express/blob/master/package.json). Scope is deliberately narrow — reimplement the handful of packages a real small API actually touches, and document explicitly (in STDLIB.md) which of the other ~23 we skipped and why.
+Not a goal: feature parity with Express's [28 runtime dependencies](https://github.com/expressjs/express/blob/master/package.json). Scope is deliberately narrow — reimplement the packages a real small API actually touches, and document explicitly (in STDLIB.md) which of the remaining 11 we skipped and why.
 
 ## What we're reimplementing
 
@@ -12,12 +12,19 @@ Not a goal: feature parity with Express's [28 runtime dependencies](https://gith
 | `body-parser` | Manual stream buffering + `JSON.parse` / manual urlencoded split | Every real API needs this |
 | `serve-static` + `send` + `mime-types` | `fs.createReadStream` + hand-written extension→MIME lookup table | Needed for the demo app's static assets |
 | `morgan` | A tiny stdout request logger middleware | Cheap, useful, good demo of the middleware system |
+| `http-errors` + `statuses` | An error factory carrying `status` and `expose`, over a local status catalogue | Error flow touches every request |
+| `content-type` + `encodeurl` | RFC 7231 parameter parsing; idempotent URL encoding | Body-parser matching and `res.redirect()` both need them |
+| `cookie` + `cookie-signature` | `serialize`/`parse` plus HMAC-SHA256 signed values | HookLens remembers the last viewed channel |
+| `etag` + `fresh` + `vary` | Content and stat validators, conditional-GET comparison, `Vary` maintenance | Turns repeat inspector polling into 304s |
+| `range-parser` + `content-disposition` | Byte-range resolution; RFC 5987 download names | Partial payload fetches, channel export, raw-body download |
+
+Everything below the first four rows was added after kickoff, one layer at a time as the previous one proved out. STDLIB.md is the authoritative record of what actually shipped.
 
 ## What we're explicitly NOT reimplementing (and why)
 
-`finalhandler`, `on-finished`, `fresh`, `vary`, `proxy-addr`, `range-parser`, `type-is`, `accepts`, `depd`, `debug`, `qs` (nested-bracket parsing), `etag`, `cookie`/`cookie-signature` (unless the demo needs sessions), `content-disposition`, `content-type`, `encodeurl`, `escape-html`, `http-errors`, `merge-descriptors`, `once`, `statuses`.
+`finalhandler`, `on-finished`, `proxy-addr`, `type-is`, `accepts`, `depd`, `debug`, `qs` (nested-bracket parsing), `escape-html`, `merge-descriptors`, `once`.
 
-These are content-negotiation edge cases, HTTP spec robustness (range requests, conditional GETs), or internal plumbing that a 72-hour demo app won't exercise. Reimplementing them adds risk (subtle bugs) without adding anything a judge will see in the demo. This exact list — and the reasoning — goes into STDLIB.md as the "what we scoped out" section, since honest scoping is worth more in judging than 28 half-broken reimplementations.
+These are content-negotiation edge cases, proxy awareness, or internal plumbing that HookLens does not exercise. Reimplementing them adds risk (subtle bugs) without adding anything a judge will see in the demo. This exact list — and the reasoning — goes into STDLIB.md as the "what we scoped out" section, since honest scoping is worth more in judging than 28 half-broken reimplementations.
 
 ## Feature set (build in this order, cut from the bottom if time runs short)
 
