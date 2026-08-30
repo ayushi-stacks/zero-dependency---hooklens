@@ -14,11 +14,16 @@ Runs every `*.test.js` file under `test/`. No config file needed for the basic c
 
 ```
 test/
-  router.test.js       # path matching, :param extraction, method dispatch
-  middleware.test.js   # execution order, next(), error middleware
-  body-parser.test.js  # JSON + urlencoded parsing, malformed input, size limits
-  static.test.js       # file serving, MIME types, 404s, path traversal
-  integration.test.js  # real HTTP requests against a running server instance
+  router.test.js           # path matching, :param extraction, method dispatch
+  middleware.test.js       # execution order, next(), error middleware
+  body-parser.test.js      # JSON + urlencoded parsing, malformed input, size limits
+  static.test.js           # file serving, MIME types, 404s, path traversal
+  http-caching.test.js     # etag, fresh, vary, and the 304 path
+  range-downloads.test.js  # range-parser, content-disposition, 206/416, exports
+  logger.test.js           # completion-time log line
+  framework-wiring.test.js # cookies, redirects, error expose flag on real requests
+  stdlib-utilities.test.js # the standalone utility modules
+  integration.test.js      # real HTTP requests against a running server instance
 ```
 
 ## What each layer covers
@@ -46,6 +51,22 @@ test/
 - Existing file serves with the correct `Content-Type` from the MIME table.
 - Missing file returns 404, not a crash.
 - `../../../etc/passwd`-style traversal attempts are blocked (resolved path must stay inside the static root — this is the one test that most directly proves the security-relevant part of the `serve-static` reimplementation).
+
+### Unit: conditional requests
+- A GET answered by `res.json()` carries an ETag; the same request with a matching `If-None-Match` comes back 304 with an empty body and no `Content-Type`.
+- A POST and an error response carry no ETag, because neither is a cacheable representation.
+- Weak comparison works both directions (`W/"x"` against `"x"` and the reverse), and `*` matches.
+- A request `Cache-Control: no-cache` forces a 200 even when the validator matches.
+- `If-Modified-Since` is ignored when `If-None-Match` is present, per RFC 9110.
+- Static files carry `ETag`, `Last-Modified`, and `Accept-Ranges`, and revalidate by either validator.
+- `res.vary()` deduplicates case-insensitively and collapses on `*`.
+
+### Unit: ranges and downloads
+- Explicit, open, and suffix ranges resolve; an over-long end clamps to the last byte.
+- An unsatisfiable range returns 416 with `Content-Range: bytes */N`; a malformed one, an unknown unit, and a multi-range ask all fall back to a full 200 rather than failing.
+- `If-Range` against a stale validator restarts the transfer as a full 200.
+- `res.send()` ignores `Range` unless the handler advertised `Accept-Ranges: bytes`.
+- `content-disposition` escapes quotes, keeps only the basename, and emits `filename*` for a non-ASCII name — with the CR/LF case asserted to produce no line break in the header, since channel names come from user input.
 
 ### Integration
 - Spin up the demo app on an ephemeral port (`app.listen(0)`, read the assigned port back).

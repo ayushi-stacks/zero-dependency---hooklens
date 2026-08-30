@@ -31,14 +31,14 @@ $ node scripts/lint.js
 Lint passed: syntax, whitespace, and import boundaries are clean.
 
 $ node --test
-# tests 34
+# tests 48
 # suites 0
-# pass 34
+# pass 48
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 237.5509
+# duration_ms 277.7911
 
 $ node scripts/verify-zero-deps.js
 Zero-dependency verification passed.
@@ -54,7 +54,7 @@ Runtime code uses these built-ins:
 - `node:http` for servers and test clients
 - WHATWG `URL` for paths and query strings
 - `node:fs` and `node:path` for static files and persistence
-- `node:crypto` for UUIDs and build hashes
+- `node:crypto` for UUIDs, cookie signatures, ETag digests, and build hashes
 - `Buffer`, streams, `ServerResponse.write()`, and process timing primitives supplied by Node
 - Browser-native `EventSource`, `fetch`, `URLSearchParams`, and clipboard APIs for the HookLens UI
 

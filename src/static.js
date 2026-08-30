@@ -2,6 +2,11 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const etag = require('./etag');
+const fresh = require('./fresh');
+const rangeParser = require('./range-parser');
+
+const BYTES_UNIT = /^bytes=/i;
 
 const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
@@ -66,14 +71,40 @@ function serveStatic(root, options = {}) {
 
       response.statusCode = 200;
       response.setHeader('Content-Type', MIME_TYPES[path.extname(resolved).toLowerCase()] || 'application/octet-stream');
-      response.setHeader('Content-Length', stats.size);
+      response.setHeader('Last-Modified', stats.mtime.toUTCString());
+      response.setHeader('ETag', etag(stats));
+      response.setHeader('Accept-Ranges', 'bytes');
+
+      // The validators are set before this check so a repeat visit is answered
+      // from headers alone, without ever opening the file.
+      if (fresh(request.headers, response.getHeaders())) {
+        response.statusCode = 304;
+        response.removeHeader('Content-Type');
+        response.end();
+        return;
+      }
+
+      const range = requestedRange(request, response, stats);
+      if (range === rangeParser.UNSATISFIABLE) {
+        response.statusCode = 416;
+        response.setHeader('Content-Range', `bytes */${stats.size}`);
+        response.removeHeader('Content-Type');
+        response.end();
+        return;
+      }
+
+      if (range) {
+        response.statusCode = 206;
+        response.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${stats.size}`);
+      }
+      response.setHeader('Content-Length', range ? range.end - range.start + 1 : stats.size);
 
       if (request.method === 'HEAD') {
         response.end();
         return;
       }
 
-      const stream = fs.createReadStream(resolved);
+      const stream = fs.createReadStream(resolved, range || undefined);
       stream.once('error', (error) => {
         if (response.headersSent) {
           response.destroy(error);
@@ -90,6 +121,41 @@ function serveStatic(root, options = {}) {
       next(error);
     }
   };
+}
+
+function requestedRange(request, response, stats) {
+  if (!request.headers.range) return undefined;
+
+  // bytes is the only unit served here. Any other unit means the Range header
+  // is ignored entirely rather than answered or refused with a 416.
+  if (!BYTES_UNIT.test(request.headers.range)) return undefined;
+
+  // If-Range keeps a resumed download honest: once the file has changed, the
+  // whole file is the right answer, not a fresh slice stitched onto the stale
+  // prefix the client already holds.
+  const ifRange = request.headers['if-range'];
+  if (ifRange && !matchesEntity(ifRange, response)) return undefined;
+
+  const ranges = rangeParser(stats.size, request.headers.range);
+  if (ranges === rangeParser.MALFORMED) return undefined;
+  if (ranges === rangeParser.UNSATISFIABLE) return ranges;
+
+  // Several ranges at once would need a multipart/byteranges body. The full
+  // file is always a valid answer to a range request, so that is what those
+  // asks get instead.
+  return ranges.length === 1 ? ranges[0] : undefined;
+}
+
+// RFC 9110 asks for strong comparison here, which a weak stat tag could never
+// satisfy, so If-Range is matched byte-for-byte against the tag this server
+// just issued. The date form is compared as a date.
+function matchesEntity(ifRange, response) {
+  if (ifRange.startsWith('"') || ifRange.startsWith('W/')) {
+    return ifRange === response.getHeader('ETag');
+  }
+
+  const since = Date.parse(ifRange);
+  return !Number.isNaN(since) && Date.parse(response.getHeader('Last-Modified')) <= since;
 }
 
 function resolveRequestPath(root, requestUrl) {

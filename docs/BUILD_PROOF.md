@@ -2,10 +2,10 @@
 
 Verification command: `node scripts/verify-build.js`
 
-- First build: `bb20926bfdc06c28fe1815f3afa1b0515317cfdd9c4d2e7f14f0f534a9ee354c`
-- Second build: `bb20926bfdc06c28fe1815f3afa1b0515317cfdd9c4d2e7f14f0f534a9ee354c`
+- First build: `b3f38791387ab1a388167c7eee0d330cec5766b073b125111d0c0bae78ec1df7`
+- Second build: `b3f38791387ab1a388167c7eee0d330cec5766b073b125111d0c0bae78ec1df7`
 
-Result: byte-identical sorted content manifests from two consecutive builds.
+Result: byte-identical sorted content manifests from two consecutive builds, covering 53 files.
 
 Recorded 30 Aug 2026 on Node 22.14.0. The hash covers the sorted path-and-content manifest of `dist/expressless`, excluding timestamps and host-specific absolute paths.
 

@@ -9,14 +9,22 @@ const elements = {
   copyCurl: document.querySelector('#copy-curl'),
   copyEndpoint: document.querySelector('#copy-endpoint'),
   detail: document.querySelector('#event-detail'),
+  downloadBody: document.querySelector('#download-body'),
   empty: document.querySelector('#empty-state'),
   endpoint: document.querySelector('#endpoint-url'),
   events: document.querySelector('#events'),
   eventSearch: document.querySelector('#event-search'),
   eventTotal: document.querySelector('#event-total'),
+  exportEvents: document.querySelector('#export-events'),
   lastMethod: document.querySelector('#last-method'),
   methodFilter: document.querySelector('#method-filter'),
   note: document.querySelector('#result-note'),
+  probeExport: document.querySelector('#probe-export'),
+  probeOutput: document.querySelector('#probe-output'),
+  probeRange: document.querySelector('#probe-range'),
+  probeRevalidate: document.querySelector('#probe-revalidate'),
+  probeSession: document.querySelector('#probe-session'),
+  probeStatus: document.querySelector('#probe-status'),
   streamState: document.querySelector('#stream-state'),
   toast: document.querySelector('#toast'),
 };
@@ -25,6 +33,7 @@ let channels = [];
 let activeChannelId = '';
 let events = [];
 let activeEventId = '';
+let lastEventsTag = '';
 let stream;
 let searchTimer;
 let toastTimer;
@@ -33,6 +42,12 @@ elements.channelForm.addEventListener('submit', createChannel);
 elements.copyEndpoint.addEventListener('click', copyEndpoint);
 elements.clearEvents.addEventListener('click', clearEvents);
 elements.copyCurl.addEventListener('click', copyCurl);
+elements.downloadBody.addEventListener('click', downloadBody);
+elements.exportEvents.addEventListener('click', exportEvents);
+elements.probeRevalidate.addEventListener('click', probeRevalidate);
+elements.probeRange.addEventListener('click', probeRange);
+elements.probeSession.addEventListener('click', probeSession);
+elements.probeExport.addEventListener('click', probeExport);
 elements.methodFilter.addEventListener('change', loadEvents);
 elements.eventSearch.addEventListener('input', () => {
   clearTimeout(searchTimer);
@@ -123,15 +138,21 @@ function renderEndpoint() {
   elements.endpoint.textContent = `${location.origin}/hooks/${activeChannelId}`;
 }
 
-async function loadEvents() {
-  if (!activeChannelId) return;
+function eventsUrl() {
   const query = new URLSearchParams();
   if (elements.methodFilter.value) query.set('method', elements.methodFilter.value);
   if (elements.eventSearch.value.trim()) query.set('search', elements.eventSearch.value.trim());
+  const suffix = query.toString();
+  return `/api/channels/${activeChannelId}/events${suffix ? `?${suffix}` : ''}`;
+}
+
+async function loadEvents() {
+  if (!activeChannelId) return;
 
   try {
-    const response = await api(`/api/channels/${activeChannelId}/events?${query}`);
-    events = response.events;
+    const response = await send(eventsUrl());
+    lastEventsTag = response.headers.get('etag') || '';
+    events = response.body.events;
     renderEvents();
   } catch (error) {
     showToast(error.message, true);
@@ -169,6 +190,7 @@ function eventButton(event) {
 
 function renderDetail(event) {
   elements.copyCurl.disabled = !event;
+  elements.downloadBody.disabled = !event;
   if (!event) {
     elements.detail.className = 'detail-empty';
     elements.detail.textContent = 'Select an event';
@@ -245,12 +267,120 @@ function copyEndpoint() {
   copyText(elements.endpoint.textContent, 'Endpoint copied');
 }
 
+function selectedEvent() {
+  return events.find((item) => item.id === activeEventId) || events[0];
+}
+
 function copyCurl() {
-  const event = events.find((item) => item.id === activeEventId) || events[0];
+  const event = selectedEvent();
   if (!event) return;
   const endpoint = `${location.origin}/hooks/${activeChannelId}`;
   const contentType = event.contentType ? ` -H ${quote(`Content-Type: ${event.contentType}`)}` : '';
   copyText(`curl -X ${event.method} ${quote(endpoint)}${contentType} --data ${quote(event.body)}`, 'cURL copied');
+}
+
+function exportEvents() {
+  if (!activeChannelId) return;
+  startDownload(`/api/channels/${activeChannelId}/export`);
+  showToast('Export started');
+}
+
+function downloadBody() {
+  const event = selectedEvent();
+  if (!event) return;
+  startDownload(`/api/channels/${activeChannelId}/events/${event.id}/body`);
+  showToast('Raw body download started');
+}
+
+// The server names the file through Content-Disposition, so the anchor
+// deliberately carries no download attribute of its own to override it.
+function startDownload(url) {
+  const link = document.createElement('a');
+  link.href = url;
+  link.rel = 'noopener';
+  document.body.append(link);
+  link.click();
+  link.remove();
+}
+
+async function probeRevalidate() {
+  if (!activeChannelId) {
+    showProbe('Revalidate', 'Select a channel first.');
+    return;
+  }
+
+  const url = eventsUrl();
+  // Sending a conditional header puts fetch into no-store mode, which is what
+  // lets a real 304 reach this code instead of the browser quietly answering
+  // from its own cache with a synthesised 200.
+  const headers = lastEventsTag ? { 'If-None-Match': lastEventsTag } : {};
+  const summary = lastEventsTag
+    ? `GET ${url}\nIf-None-Match: ${lastEventsTag}`
+    : `GET ${url}\n(no ETag recorded yet, this run captures one)`;
+
+  const response = await runProbe(summary, url, { headers }, ['etag', 'cache-control', 'content-length']);
+  const tag = response && response.headers.get('etag');
+  if (tag) lastEventsTag = tag;
+}
+
+async function probeRange() {
+  const event = selectedEvent();
+  if (!event) {
+    showProbe('Range', 'Capture and select an event first.');
+    return;
+  }
+
+  const url = `/api/channels/${activeChannelId}/events/${event.id}/body`;
+  await runProbe(
+    `GET ${url}\nRange: bytes=0-15`,
+    url,
+    { headers: { Range: 'bytes=0-15' } },
+    ['content-range', 'content-length', 'accept-ranges', 'content-disposition'],
+  );
+}
+
+async function probeSession() {
+  await runProbe('GET /api/session', '/api/session', {}, ['vary', 'cache-control', 'etag']);
+}
+
+async function probeExport() {
+  if (!activeChannelId) {
+    showProbe('Export', 'Select a channel first.');
+    return;
+  }
+
+  const url = `/api/channels/${activeChannelId}/export`;
+  await runProbe(`GET ${url}`, url, {}, ['content-disposition', 'content-type', 'content-length']);
+}
+
+async function runProbe(summary, url, options, interesting) {
+  showProbe(summary, 'running...');
+
+  try {
+    const response = await fetch(url, options);
+    const payload = response.status === 304 ? '' : await response.text();
+    const lines = [`HTTP ${response.status} ${response.statusText}`];
+
+    for (const name of interesting) {
+      const value = response.headers.get(name);
+      if (value) lines.push(`${name}: ${value}`);
+    }
+
+    lines.push('', `${payload.length} characters of body received`);
+    if (payload && payload.length <= 240) lines.push(payload);
+
+    elements.probeStatus.textContent = response.status;
+    showProbe(summary, lines.join('\n'));
+    return response;
+  } catch (error) {
+    elements.probeStatus.textContent = 'error';
+    showProbe(summary, error.message);
+    return null;
+  }
+}
+
+function showProbe(summary, detail) {
+  elements.probeOutput.textContent = `${summary}\n\n${detail}`;
 }
 
 async function copyText(value, message) {
@@ -262,12 +392,16 @@ async function copyText(value, message) {
   }
 }
 
-async function api(url, options) {
+async function send(url, options) {
   const response = await fetch(url, options);
   const contentType = response.headers.get('content-type') || '';
   const body = contentType.includes('application/json') ? await response.json() : null;
   if (!response.ok) throw new Error(body?.error || `Request failed with status ${response.status}`);
-  return body;
+  return { body, headers: response.headers, status: response.status };
+}
+
+async function api(url, options) {
+  return (await send(url, options)).body;
 }
 
 function quote(value) {

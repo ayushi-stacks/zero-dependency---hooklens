@@ -36,6 +36,14 @@ function createDemoApp(options = {}) {
   if (options.log !== false) app.use(expressless.logger({ write: options.writeLog }));
   app.use(expressless.cookies(secret));
 
+  // Every response carries an ETag now, so no-cache tells the browser to
+  // revalidate rather than answer from its own cache without asking. That is
+  // what turns a repeat request into a visible 304 instead of a silent hit.
+  app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    next();
+  });
+
   for (const method of ['post', 'put', 'patch']) {
     app[method]('/hooks/:channelId', captureWebhook);
   }
@@ -53,6 +61,9 @@ function createDemoApp(options = {}) {
   });
 
   app.get('/api/session', (req, res) => {
+    // This answer is derived entirely from the request's signed cookie, so a
+    // shared cache must not hand one browser's last channel to another.
+    res.vary('Cookie');
     res.json({ lastChannel: req.signedCookies[LAST_CHANNEL_COOKIE] || null });
   });
 
@@ -91,6 +102,20 @@ function createDemoApp(options = {}) {
     res.json({ events, total: events.length });
   });
 
+  app.get('/api/channels/:channelId/export', (req, res, next) => {
+    const channel = store.getChannel(req.params.channelId);
+    if (!channel) {
+      next(httpError(404, 'Channel not found'));
+      return;
+    }
+
+    // Channel names are user supplied and frequently not ASCII, which is the
+    // case content-disposition exists for: the header gets an ASCII fallback
+    // plus an RFC 5987 filename* carrying the real bytes.
+    res.attachment(`HookLens ${channel.name} events.json`);
+    res.json({ channel, events: store.listEvents(channel.id, req.query) });
+  });
+
   app.get('/api/channels/:channelId/events/:eventId', (req, res, next) => {
     const event = store.getEvent(req.params.channelId, req.params.eventId);
     if (!event) {
@@ -98,6 +123,26 @@ function createDemoApp(options = {}) {
       return;
     }
     res.json(event);
+  });
+
+  app.get('/api/channels/:channelId/events/:eventId/body', (req, res, next) => {
+    const event = store.getEvent(req.params.channelId, req.params.eventId);
+    if (!event) {
+      next(httpError(404, 'Event not found'));
+      return;
+    }
+
+    const binary = event.bodyEncoding === 'base64';
+    const payload = Buffer.from(event.body || '', binary ? 'base64' : 'utf8');
+
+    // The captured Content-Type is attacker supplied. Echoing it would let a
+    // webhook sender store HTML and have this origin serve it back as a page,
+    // so a raw body always leaves as an opaque download.
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.attachment(`${event.method}-${event.id}.${binary ? 'bin' : 'txt'}`);
+    res.send(payload);
   });
 
   app.delete('/api/channels/:channelId/events', async (req, res, next) => {
