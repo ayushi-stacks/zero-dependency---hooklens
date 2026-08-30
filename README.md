@@ -24,6 +24,8 @@ On PowerShell:
 $env:PORT=8080; node demo/server.js
 ```
 
+Set `HOOKLENS_SECRET` to keep the signed "last viewed channel" cookie valid across restarts. Without it the server generates a random secret at startup, so the cookie stops verifying after a restart and the inspector falls back to the first channel.
+
 ## What is included
 
 - Method routing for GET, POST, PUT, PATCH, and DELETE
@@ -36,7 +38,8 @@ $env:PORT=8080; node demo/server.js
 - Atomic JSON persistence with serialized mutations
 - Server-Sent Events for live browser updates
 - A responsive webhook inspector with channel creation, endpoint copy, search, filters, event detail, and copy-as-cURL
-- Extra Express-style utility modules for `http-errors`, `statuses`, `content-type`, `encodeurl`, and `cookie`/`cookie-signature`
+- Cookie parsing with signed-cookie verification, plus `res.cookie()`, `res.clearCookie()`, `res.redirect()`, and `res.sendStatus()`
+- Standalone `http-errors`, `statuses`, `content-type`, `encodeurl`, `cookie`, and `cookie-signature` replacements, each called on the request path
 
 ## Framework API
 
@@ -61,13 +64,16 @@ app.use((error, req, res, next) => {
 app.listen(3000);
 ```
 
-Built-in middleware factories are `expressless.json()`, `expressless.urlencoded()`, `expressless.static(root)`, and `expressless.logger()`. Utility modules are also exposed from the same entry point: `expressless.statuses`, `expressless.httpError`, `expressless.contentType`, `expressless.encodeUrl`, and `expressless.cookie` / `expressless.cookieSignature`.
+Built-in middleware factories are `expressless.json()`, `expressless.urlencoded()`, `expressless.static(root)`, `expressless.logger()`, and `expressless.cookies(secret)`. The last populates `req.cookies` and, when a secret is supplied, verifies `s:`-prefixed values into `req.signedCookies`; a cookie whose signature does not verify is dropped rather than surfaced.
+
+Responses also carry `res.sendStatus(code)`, `res.redirect([status], url)`, `res.cookie(name, value, options)`, and `res.clearCookie(name, options)`. The same utility modules are exposed directly for standalone use: `expressless.statuses`, `expressless.httpError`, `expressless.contentType`, `expressless.encodeUrl`, and `expressless.cookie` / `expressless.cookieSignature`.
 
 ## HookLens API
 
 | Method | Path | Behavior |
 |---|---|---|
 | GET | `/api/health` | Framework and demo health response |
+| GET | `/api/session` | Last channel viewed by this browser, from a signed cookie |
 | GET | `/api/channels` | List capture channels |
 | POST | `/api/channels` | Validate and create a channel |
 | GET | `/api/channels/:channelId` | Fetch one channel summary |
@@ -76,6 +82,7 @@ Built-in middleware factories are `expressless.json()`, `expressless.urlencoded(
 | DELETE | `/api/channels/:channelId/events` | Clear captured events |
 | GET | `/api/channels/:channelId/stream` | Stream live updates as SSE |
 | POST/PUT/PATCH | `/hooks/:channelId` | Capture a webhook payload |
+| GET | `/hooks/:channelId` | Redirect a pasted webhook URL to the inspector |
 
 Event filters: `search` and `method=POST|PUT|PATCH`.
 

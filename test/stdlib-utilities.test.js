@@ -48,3 +48,50 @@ test('Express-style utility modules are available and behave as expected', () =>
   assert.equal(expressless.statuses[404], 'Not Found');
   assert.equal(expressless.httpError(422, 'bad').status, 422);
 });
+
+test('encodeurl leaves existing escapes alone and never throws', () => {
+  assert.equal(encodeurl('/foo%20bar'), '/foo%20bar');
+  assert.equal(encodeurl('/a%2Fb'), '/a%2Fb');
+  assert.equal(encodeurl('/discount/100%'), '/discount/100%25');
+  assert.equal(encodeurl('/a%zz'), '/a%25zz');
+  assert.equal(encodeurl('/\uD800'), '/%EF%BF%BD');
+  assert.equal(encodeurl(undefined), undefined);
+});
+
+test('cookie parsing survives malformed input and omits invented attributes', () => {
+  assert.deepEqual({ ...cookie.parse('a=%E0%A4%A') }, { a: '%E0%A4%A' });
+  assert.deepEqual({ ...cookie.parse('') }, {});
+  assert.equal(Object.getPrototypeOf(cookie.parse('a=b')), null);
+
+  // "Signed" is not a Set-Cookie attribute; Express signs the value instead.
+  assert.equal(cookie.serialize('s', 'v', { signed: true }), 's=v');
+  assert.throws(() => cookie.serialize('s', 'v', { maxAge: 'abc' }), TypeError);
+  assert.throws(() => cookie.serialize('s', 'v', { expires: 'nonsense' }), TypeError);
+});
+
+test('content-type quotes parameter values that are not tokens', () => {
+  assert.equal(contentType.format({ type: 'text/plain', parameters: { foo: 'bar baz' } }), 'text/plain; foo="bar baz"');
+  assert.equal(contentType.parse(contentType.format({ type: 'text/plain', parameters: { foo: 'bar baz' } })).parameters.foo, 'bar baz');
+  assert.equal(contentType.parse(contentType.format({ type: 'text/plain', parameters: { foo: 'say "hi"' } })).parameters.foo, 'say "hi"');
+  assert.throws(() => contentType.parse(''), TypeError);
+});
+
+test('http errors are HttpError instances with faithful names and expose flags', () => {
+  assert.ok(httpError(404) instanceof httpError.HttpError);
+  assert.ok(httpError(404) instanceof Error);
+  assert.equal(httpError(418).name, 'ImATeapot');
+  assert.equal(httpError(203).name, 'NonAuthoritativeInformation');
+  assert.equal(httpError(404).expose, true);
+  assert.equal(httpError(500).expose, false);
+  assert.equal(httpError.NotFound('gone').status, 404);
+  assert.equal(httpError.OK, undefined);
+  assert.throws(() => httpError(999), RangeError);
+});
+
+test('cookie signatures reject tampering', () => {
+  const signed = cookieSignature.sign('session-token', 'super-secret');
+  assert.equal(cookieSignature.unsign(signed, 'wrong-secret'), false);
+  assert.equal(cookieSignature.unsign('session-token.deadbeef', 'super-secret'), false);
+  assert.equal(cookieSignature.unsign('no-separator', 'super-secret'), false);
+  assert.equal(cookieSignature.unsign(42, 'super-secret'), false);
+});

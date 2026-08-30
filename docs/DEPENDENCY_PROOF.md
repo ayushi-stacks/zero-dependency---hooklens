@@ -21,7 +21,7 @@ The POSIX wrapper `scripts/verify-zero-deps.sh` runs the same cross-platform Nod
 
 ## Verified output
 
-Captured 29 Aug 2026 on Windows 11, Node 22.14.0, from a clean checkout with no `node_modules` present.
+Captured 30 Aug 2026 on Windows 11, Node 22.14.0, from a clean checkout with no `node_modules` present.
 
 ```console
 $ node --version
@@ -31,14 +31,14 @@ $ node scripts/lint.js
 Lint passed: syntax, whitespace, and import boundaries are clean.
 
 $ node --test
-# tests 20
+# tests 34
 # suites 0
-# pass 20
+# pass 34
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 207.9283
+# duration_ms 237.5509
 
 $ node scripts/verify-zero-deps.js
 Zero-dependency verification passed.

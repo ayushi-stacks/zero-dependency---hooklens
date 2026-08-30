@@ -16,7 +16,7 @@ Read: testing and a real working demo matter more than anything else. Don't over
 - [ ] Single File (+5) — optional, likely skip, framework + demo app as one file hurts readability (Code Quality is 25%, conflicts with this bonus)
 - [x] Reproducible Build (+5) — two builds are compared by `scripts/verify-build.js`
 - [x] Package Killer (+3) — Express + its middleware stack, declared with download counts in STDLIB.md
-- [x] STDLIB Log (+3) — 18 meaningful substitutions documented in STDLIB.md
+- [x] STDLIB Log (+3) — 23 meaningful substitutions documented in STDLIB.md
 
 ## Submission checklist
 

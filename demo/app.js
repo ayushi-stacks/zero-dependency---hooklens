@@ -1,11 +1,16 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const path = require('node:path');
 const expressless = require('../src');
 const createHookStore = require('./store');
 const { validateChannel } = require('./validation');
 
+const { contentType, httpError } = expressless;
+
 const CAPTURE_LIMIT = 128 * 1024;
+const LAST_CHANNEL_COOKIE = 'hooklens_last_channel';
+const LAST_CHANNEL_MAX_AGE = 30 * 24 * 60 * 60;
 const REDACTED_HEADERS = new Set([
   'authorization',
   'cookie',
@@ -24,16 +29,31 @@ function createDemoApp(options = {}) {
   const hub = createEventHub();
   const app = expressless();
 
+  // Without a configured secret the signed cookie simply stops verifying after
+  // a restart, so the UI falls back to the first channel instead of breaking.
+  const secret = options.secret || process.env.HOOKLENS_SECRET || crypto.randomUUID();
+
   if (options.log !== false) app.use(expressless.logger({ write: options.writeLog }));
+  app.use(expressless.cookies(secret));
 
   for (const method of ['post', 'put', 'patch']) {
     app[method]('/hooks/:channelId', captureWebhook);
   }
 
+  // A webhook URL pasted into a browser arrives here as a GET; send it to the
+  // inspector for that channel rather than falling through to a 404.
+  app.get('/hooks/:channelId', (req, res) => {
+    res.redirect(303, `/?channel=${req.params.channelId}`);
+  });
+
   app.use(expressless.json({ limit: 32 * 1024 }));
 
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', framework: 'expressless', demo: 'HookLens' });
+  });
+
+  app.get('/api/session', (req, res) => {
+    res.json({ lastChannel: req.signedCookies[LAST_CHANNEL_COOKIE] || null });
   });
 
   app.get('/api/channels', (req, res) => {
@@ -60,6 +80,14 @@ function createDemoApp(options = {}) {
       next(httpError(404, 'Channel not found'));
       return;
     }
+
+    res.cookie(LAST_CHANNEL_COOKIE, req.params.channelId, {
+      signed: true,
+      httpOnly: true,
+      sameSite: 'Lax',
+      path: '/',
+      maxAge: LAST_CHANNEL_MAX_AGE,
+    });
     res.json({ events, total: events.length });
   });
 
@@ -109,6 +137,9 @@ function createDemoApp(options = {}) {
         query: req.query,
         headers: redactHeaders(req.headers),
         contentType: String(req.headers['content-type'] || ''),
+        // The Cookie header itself is redacted, but which cookies a sender
+        // attached is exactly what you want to see when debugging a webhook.
+        cookieNames: Object.keys(req.cookies).sort(),
         body: encodeBody(body, req.headers['content-type']),
         bodyEncoding: isTextBody(req.headers['content-type']) ? 'utf8' : 'base64',
         size: body.length,
@@ -208,21 +239,20 @@ function encodeBody(buffer, contentType) {
   return isTextBody(contentType) ? buffer.toString('utf8') : buffer.toString('base64');
 }
 
-function isTextBody(contentType) {
-  const type = String(contentType || '').split(';', 1)[0].trim().toLowerCase();
-  return type === ''
-    || type.startsWith('text/')
+function isTextBody(header) {
+  let type;
+  try {
+    type = contentType.parse(header).type;
+  } catch {
+    return true;
+  }
+
+  return type.startsWith('text/')
     || type === 'application/json'
     || type === 'application/x-www-form-urlencoded'
     || type.endsWith('+json')
     || type.endsWith('+xml')
     || type === 'application/xml';
-}
-
-function httpError(status, message) {
-  const error = new Error(message);
-  error.status = status;
-  return error;
 }
 
 module.exports = createDemoApp;

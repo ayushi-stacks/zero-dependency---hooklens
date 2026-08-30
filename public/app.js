@@ -51,7 +51,21 @@ async function boot() {
     });
     channels = [channel];
   }
-  selectChannel(channels[0].id);
+  selectChannel(await rememberedChannelId());
+}
+
+async function rememberedChannelId() {
+  const requested = new URLSearchParams(location.search).get('channel');
+  if (channels.some((channel) => channel.id === requested)) return requested;
+
+  try {
+    const { lastChannel } = await api('/api/session');
+    if (channels.some((channel) => channel.id === lastChannel)) return lastChannel;
+  } catch {
+    // A missing or unverifiable session cookie is not worth failing boot over.
+  }
+
+  return channels[0].id;
 }
 
 async function loadChannels() {

@@ -6,20 +6,30 @@ Target: 10+ entries for the STDLIB Log bonus (+3). Delivered: 23.
 
 ## Package Killer target
 
-Bonus claim (+3): `express` plus the middleware stack a typical Express JSON API installs alongside it. Every package below is replaced by first-party code in this repository. Nothing is wrapped, shimmed, or vendored.
+Bonus claim (+3): `express` and the dependency stack it installs. Every package below is replaced by first-party code in this repository. Nothing is wrapped, shimmed, or vendored.
 
 | Package | Weekly downloads | Replaced by |
 |---|---|---|
-| `mime-types` | 263,397,438 | entry 6 |
-| `qs` | 183,294,367 | entry 8 |
-| `body-parser` | 139,359,839 | entry 3 |
-| `serve-static` | 139,292,633 | entry 4 |
-| `express` | 132,906,522 | entry 1 |
-| `morgan` | 13,313,269 | entry 7 |
+| `mime-types` | 263,474,820 | entry 6 |
+| `content-type` | 206,657,086 | entry 12 |
+| `cookie` | 206,078,581 | entry 14 |
+| `statuses` | 188,614,039 | entry 11 |
+| `qs` | 183,329,509 | entry 8 |
+| `http-errors` | 169,873,339 | entry 10 |
+| `encodeurl` | 150,223,271 | entry 13 |
+| `send` | 143,260,992 | entry 5 |
+| `serve-static` | 139,338,135 | entry 4 |
+| `body-parser` | 139,301,713 | entry 3 |
+| `cookie-signature` | 137,337,257 | entry 15 |
+| `express` | 132,879,571 | entry 1 |
+| `router` | 64,411,246 | entry 2 |
+| `morgan` | 13,351,654 | entry 7 |
 
-Counts are npm `last-week` point figures for 22-28 Aug 2026.
+Counts are npm `last-week` point figures for 23-29 Aug 2026.
 
-This is a clean reimplementation of the surface a JSON API actually exercises, not a claim of Express parity. The "Explicitly out of scope" section at the end names every Express sub-package deliberately left unimplemented, and why.
+Express 5.2.1 declares 28 direct dependencies. Twelve are reimplemented here: `router`, `send`, `body-parser`, `serve-static`, `mime-types`, `qs`, `http-errors`, `statuses`, `content-type`, `encodeurl`, `cookie`, and `cookie-signature`. `express` itself and the transitive `raw-body` bring the total to fourteen packages from that tree. `morgan` is a companion middleware rather than a dependency of Express.
+
+This is a clean reimplementation of the surface a JSON API actually exercises, not a claim of Express parity. The "Explicitly out of scope" section at the end names the remaining sub-packages and why each is left unimplemented.
 
 ## Substitutions
 
@@ -42,15 +52,15 @@ This is a clean reimplementation of the surface a JSON API actually exercises, n
 9. Normally: `supertest` -> Instead: `node:http` sends real requests to ephemeral ports and `node:test` plus `node:assert` checks responses.
    Cost: tests explicitly manage server startup, shutdown, request bodies, and response buffering.
 10. Normally: `http-errors` -> Instead: a tiny error factory attaches numeric `status` and `statusCode` values to `Error` objects.
-   Edge: the default app path still hides internal 500 messages from clients while preserving the real error for debugging.
+   Edge: results are HttpError instances with expose false for 5xx, so the default app path hides internal messages from clients while preserving the real error for debugging.
 11. Normally: `statuses` -> Instead: a local HTTP status table exposes numeric code lookups and friendly message strings.
-   Gap: the implementation covers the common status catalog used by the framework and the demo, not every RFC edge-case alias.
+   Gap: covers the common status catalog rather than every RFC alias, and message/status are lookup functions rather than the object maps the package exposes.
 12. Normally: `content-type` -> Instead: a lightweight parser/formatter handles media-type names and parameter strings such as `charset=utf-8`.
-   Edge: quoted parameter values are decoded, but this is intentionally not a full RFC-7231 parser.
+   Edge: values outside the RFC 7231 token grammar are quoted and escaped on output, so a parameter containing a space survives a format and parse round trip.
 13. Normally: `encodeurl` -> Instead: `encodeURI()` is applied with bracket preservation for safe path formatting.
-   Gap: the helper intentionally avoids broad URL rewriting and does not manage query-string escaping semantics.
+   Edge: existing %XX escapes pass through untouched and lone surrogates become U+FFFD, so encoding an already-encoded URL is idempotent and never throws.
 14. Normally: `cookie` -> Instead: `serialize()` and `parse()` handle basic cookie attributes such as `Max-Age`, `Path`, `HttpOnly`, and `SameSite`.
-   Edge: this is a focused utility layer rather than a full set-cookie compliance library.
+   Edge: a malformed percent-escape in an attacker-supplied Cookie header returns the raw text instead of throwing out of the parser.
 15. Normally: `cookie-signature` -> Instead: HMAC-SHA256 signing emits `value.signature` tokens that can be verified without external dependencies.
    Gap: the implementation targets signed session-style values rather than a password-authenticated cookie system.
 16. Normally: `lowdb` -> Instead: `node:fs` loads and persists HookLens channels and captured events as JSON.
@@ -69,6 +79,19 @@ This is a clean reimplementation of the surface a JSON API actually exercises, n
    Gap: this focused lint does not attempt ESLint's semantic rule ecosystem.
 23. Normally: `shx` / `cpy-cli` -> Instead: `node:fs` recursively creates a deterministic release directory and `node:crypto` hashes its manifest.
    Edge: the build sorts every path and excludes timestamps so two builds from identical source have identical manifest hashes.
+
+## Where these run
+
+The replacements are not a side library. Each one is called on the request path by the framework or the demo.
+
+| Module | Call sites |
+|---|---|
+| `statuses` | `src/application.js` 404 and error bodies; `res.sendStatus()` and `res.redirect()` in `src/response.js` |
+| `http-errors` | `src/body-parser.js` (413 over-limit, 400 malformed); `demo/validation.js` (422); route guards in `demo/app.js` (404) |
+| `content-type` | `src/body-parser.js` media-type matching; `demo/app.js` text-versus-binary payload classification |
+| `encodeurl` | the `Location` header built by `res.redirect()` in `src/response.js` |
+| `cookie` | `src/cookies.js` middleware; `res.cookie()` and `res.clearCookie()` in `src/response.js`; captured cookie names in `demo/app.js` |
+| `cookie-signature` | signed cookies in `src/cookies.js` and `res.cookie({ signed: true })`; HookLens remembers the last viewed channel with one |
 
 ## Explicitly out of scope (and why)
 

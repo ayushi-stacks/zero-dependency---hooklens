@@ -1,5 +1,7 @@
 'use strict';
 
+const TOKEN = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+
 function parse(value) {
   if (value === undefined || value === null) {
     throw new TypeError('Content-Type header is required');
@@ -40,8 +42,7 @@ function format(input) {
 
   for (const [key, value] of Object.entries(parameters)) {
     if (value === undefined || value === null) continue;
-    const encoded = String(value).replace(/"/g, '\\"');
-    pairs.push(`${key}=${encoded}`);
+    pairs.push(`${key}=${formatParameterValue(String(value))}`);
   }
 
   return pairs.length === 0 ? type : `${type}; ${pairs.join('; ')}`;
@@ -50,9 +51,16 @@ function format(input) {
 function parseParameterValue(value) {
   if (!value) return '';
   if (value.startsWith('"') && value.endsWith('"')) {
-    return value.slice(1, -1).replace(/\\"/g, '"');
+    return value.slice(1, -1).replace(/\\(.)/g, '$1');
   }
   return value;
+}
+
+// Anything outside the RFC 7231 token grammar has to be quoted, or a space in
+// the value silently truncates the parameter for every real client.
+function formatParameterValue(value) {
+  if (TOKEN.test(value)) return value;
+  return `"${value.replace(/(["\\])/g, '\\$1')}"`;
 }
 
 module.exports = {

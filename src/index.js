@@ -5,6 +5,7 @@ const { json, urlencoded } = require('./body-parser');
 const contentType = require('./content-type');
 const { parse: parseCookie, serialize: serializeCookie } = require('./cookie');
 const cookieSignature = require('./cookie-signature');
+const cookies = require('./cookies');
 const httpError = require('./http-errors');
 const encodeurl = require('./encodeurl');
 const logger = require('./logger');
@@ -24,5 +25,6 @@ createApplication.encodeurl = encodeurl;
 createApplication.encodeUrl = encodeurl;
 createApplication.cookie = { parse: parseCookie, serialize: serializeCookie };
 createApplication.cookieSignature = cookieSignature;
+createApplication.cookies = cookies;
 
 module.exports = createApplication;

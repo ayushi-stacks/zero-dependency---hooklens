@@ -3,6 +3,7 @@
 const http = require('node:http');
 const decorateResponse = require('./response');
 const { compilePath, matchPath, parseRequestUrl } = require('./router');
+const statuses = require('./statuses');
 
 const ROUTE_METHODS = ['get', 'post', 'put', 'patch', 'delete'];
 
@@ -116,13 +117,17 @@ function finish(error, response) {
     const status = Number.isInteger(error.status) && error.status >= 400 && error.status <= 599
       ? error.status
       : 500;
+
+    // http-errors marks client errors as safe to surface. Anything without an
+    // opinion falls back to the same rule, so an internal message never leaks.
+    const expose = error.expose === undefined ? status < 500 : error.expose === true;
     response.status(status).json({
-      error: status >= 500 ? 'Internal Server Error' : error.message,
+      error: expose ? error.message : statuses[status],
     });
     return;
   }
 
-  response.status(404).send('Not Found');
+  response.status(404).send(statuses[404]);
 }
 
 module.exports = createApplication;

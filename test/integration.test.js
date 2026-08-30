@@ -256,3 +256,42 @@ function openEventStream(server, requestPath) {
 
   return opened;
 }
+
+test('HookLens redirects browser GETs, records cookie names, and remembers the last channel', async (context) => {
+  const fixture = await createFixture(context);
+  const { app } = createDemoApp({ dataFile: fixture.dataFile, log: false, secret: 'fixed-test-secret' });
+  const server = await listen(app);
+  context.after(() => close(server));
+
+  await request(server, jsonRequest('POST', '/api/channels', { id: 'github-dev', name: 'GitHub dev' }));
+
+  const pasted = await request(server, { path: '/hooks/github-dev' });
+  assert.equal(pasted.status, 303);
+  assert.equal(pasted.headers.location, '/?channel=github-dev');
+
+  await request(server, {
+    method: 'POST',
+    path: '/hooks/github-dev',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: 'session=abc; tracking_id=xyz',
+    },
+    body: JSON.stringify({ action: 'opened' }),
+  });
+
+  const events = await request(server, { path: '/api/channels/github-dev/events' });
+  assert.equal(events.json.events[0].headers.cookie, '[redacted]');
+  assert.deepEqual(events.json.events[0].cookieNames, ['session', 'tracking_id']);
+
+  const remembered = events.headers['set-cookie'][0];
+  assert.match(remembered, /^hooklens_last_channel=s%3Agithub-dev\./);
+
+  const session = await request(server, {
+    path: '/api/session',
+    headers: { Cookie: remembered.split(';')[0] },
+  });
+  assert.equal(session.json.lastChannel, 'github-dev');
+
+  const anonymous = await request(server, { path: '/api/session' });
+  assert.equal(anonymous.json.lastChannel, null);
+});

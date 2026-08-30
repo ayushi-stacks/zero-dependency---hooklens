@@ -2,12 +2,12 @@
 
 Verification command: `node scripts/verify-build.js`
 
-- First build: `e44f464bbc280827634222c194b04a8e44b5113137ecc54d0149bf99cc6282cc`
-- Second build: `e44f464bbc280827634222c194b04a8e44b5113137ecc54d0149bf99cc6282cc`
+- First build: `bb20926bfdc06c28fe1815f3afa1b0515317cfdd9c4d2e7f14f0f534a9ee354c`
+- Second build: `bb20926bfdc06c28fe1815f3afa1b0515317cfdd9c4d2e7f14f0f534a9ee354c`
 
 Result: byte-identical sorted content manifests from two consecutive builds.
 
-Recorded 29 Aug 2026 on Node 22.14.0. The hash covers the sorted path-and-content manifest of `dist/expressless`, excluding timestamps and host-specific absolute paths.
+Recorded 30 Aug 2026 on Node 22.14.0. The hash covers the sorted path-and-content manifest of `dist/expressless`, excluding timestamps and host-specific absolute paths.
 
 ## Why this hash reproduces on any machine
 

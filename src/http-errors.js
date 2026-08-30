@@ -2,6 +2,18 @@
 
 const statuses = require('./statuses');
 
+class HttpError extends Error {
+  constructor(status, message, props) {
+    const code = Number(status);
+    super(message || statuses[code] || 'Error');
+    this.name = createName(code);
+    this.status = code;
+    this.statusCode = code;
+    this.expose = code < 500;
+    if (props && typeof props === 'object') Object.assign(this, props);
+  }
+}
+
 function createError(status, message, props) {
   if (status === undefined || status === null) {
     status = 500;
@@ -9,7 +21,7 @@ function createError(status, message, props) {
 
   if (typeof status === 'object') {
     props = status;
-    status = props.status || 500;
+    status = props.status || props.statusCode || 500;
     message = props.message || statuses[status] || 'Error';
   } else if (typeof status === 'string') {
     const parsed = Number(status);
@@ -26,22 +38,14 @@ function createError(status, message, props) {
     throw new RangeError(`Invalid HTTP error status code: ${status}`);
   }
 
-  const error = new Error(message || statuses[code] || 'Error');
-  error.name = createName(code);
-  error.status = code;
-  error.statusCode = code;
-  error.expose = code >= 400 && code < 500;
-
-  if (props && typeof props === 'object') {
-    Object.assign(error, props);
-  }
-
-  return error;
+  return new HttpError(code, message, props);
 }
 
+// Only 4xx and 5xx get named constructors; http-errors does not expose
+// createError.OK, and neither should this.
 for (const code of statuses.codes) {
-  const name = createName(code);
-  Object.defineProperty(createError, name, {
+  if (code < 400) continue;
+  Object.defineProperty(createError, createName(code), {
     configurable: true,
     enumerable: false,
     value: (message, props) => createError(code, message, props),
@@ -49,16 +53,7 @@ for (const code of statuses.codes) {
 }
 
 createError.createError = createError;
-createError.HttpError = class HttpError extends Error {
-  constructor(status, message, props) {
-    super(message || statuses[status] || 'Error');
-    this.name = createName(Number(status));
-    this.status = Number(status);
-    this.statusCode = Number(status);
-    this.expose = Number(status) >= 400 && Number(status) < 500;
-    if (props && typeof props === 'object') Object.assign(this, props);
-  }
-};
+createError.HttpError = HttpError;
 
 module.exports = createError;
 
@@ -67,14 +62,13 @@ function createName(code) {
     return 'Error';
   }
 
-  const name = statuses[code].replace(/[^a-zA-Z0-9]+/g, ' ')
-    .trim()
+  // Punctuation is stripped rather than treated as a separator, so 418 is
+  // ImATeapot and not IMATeapot.
+  const name = statuses[code]
+    .replace(/[^ 0-9a-z]/gi, '')
     .split(' ')
     .filter(Boolean)
-    .map((segment, index) => {
-      if (index === 0) return segment;
-      return segment[0].toUpperCase() + segment.slice(1).toLowerCase();
-    })
+    .map((segment) => segment[0].toUpperCase() + segment.slice(1))
     .join('');
 
   return name || 'Error';

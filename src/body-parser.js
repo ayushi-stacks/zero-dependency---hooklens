@@ -1,5 +1,8 @@
 'use strict';
 
+const contentType = require('./content-type');
+const httpError = require('./http-errors');
+
 const DEFAULT_LIMIT = 100 * 1024;
 
 function json(options = {}) {
@@ -17,12 +20,7 @@ function createBodyParser(mediaType, parse, options) {
   }
 
   return (request, response, next) => {
-    const contentType = String(request.headers['content-type'] || '')
-      .split(';', 1)[0]
-      .trim()
-      .toLowerCase();
-
-    if (contentType !== mediaType) {
+    if (readMediaType(request) !== mediaType) {
       next();
       return;
     }
@@ -37,11 +35,20 @@ function createBodyParser(mediaType, parse, options) {
         request.body = parse(body);
         next();
       } catch (parseError) {
-        parseError.status = 400;
-        next(parseError);
+        next(httpError(400, parseError.message));
       }
     });
   };
+}
+
+// A request with no Content-Type, or a malformed one, simply does not match a
+// parser; it is not an error until a route asks for a body that is not there.
+function readMediaType(request) {
+  try {
+    return contentType.parse(request.headers['content-type']).type;
+  } catch {
+    return '';
+  }
 }
 
 function readBody(request, limit, done) {
@@ -59,7 +66,7 @@ function readBody(request, limit, done) {
   request.on('data', (chunk) => {
     size += chunk.length;
     if (size > limit) {
-      limitError ||= createError(413, `Request body exceeds ${limit} bytes`);
+      limitError ||= httpError(413, `Request body exceeds ${limit} bytes`);
       return;
     }
     chunks.push(chunk);
@@ -72,7 +79,7 @@ function readBody(request, limit, done) {
     }
     complete(null, Buffer.concat(chunks).toString('utf8'));
   });
-  request.once('aborted', () => complete(createError(400, 'Request body was aborted')));
+  request.once('aborted', () => complete(httpError(400, 'Request body was aborted')));
   request.once('error', complete);
 }
 
@@ -110,12 +117,6 @@ function parseUrlencoded(body) {
 
 function decodeFormComponent(value) {
   return decodeURIComponent(value.replace(/\+/g, ' '));
-}
-
-function createError(status, message) {
-  const error = new Error(message);
-  error.status = status;
-  return error;
 }
 
 module.exports = {
