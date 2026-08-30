@@ -2,8 +2,8 @@
 
 Verification command: `node scripts/verify-build.js`
 
-- First build: `b3f38791387ab1a388167c7eee0d330cec5766b073b125111d0c0bae78ec1df7`
-- Second build: `b3f38791387ab1a388167c7eee0d330cec5766b073b125111d0c0bae78ec1df7`
+- First build: `e547c19d5705ee12927cd6cbbdd5f696ede3c1a9128aa315ace7cfbdee488654`
+- Second build: `e547c19d5705ee12927cd6cbbdd5f696ede3c1a9128aa315ace7cfbdee488654`
 
 Result: byte-identical sorted content manifests from two consecutive builds, covering 53 files.
 
