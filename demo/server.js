@@ -3,7 +3,9 @@
 const createDemoApp = require('./app');
 
 const port = Number(process.env.PORT || 3000);
-const host = process.env.HOST || '127.0.0.1';
+// A platform that injects PORT is routing external traffic into this
+// container, so binding loopback there would leave the server unreachable.
+const host = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
 const { app } = createDemoApp();
 const server = app.listen(port, host, () => {
   const address = server.address();
